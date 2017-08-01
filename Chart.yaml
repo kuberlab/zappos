@@ -1,0 +1,16 @@
+Description: Gan Image Similarity
+Engine: gotpl
+Home: http://kuberlab.com
+Icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwmSxoPPuSYBFO9snorqVWFehr9Pkf4tSOhdLM6FXT2aqxcLp60A
+Keywords:
+- kubernets
+- tensorflow
+- gan
+- similarity
+- demo
+Maintainers:
+- Email: agunin@kuberlab.com
+  Name: Gunin Alexander
+Name: gan-image-similarity
+Version: 1.0.0
+Type: mlapp-v2

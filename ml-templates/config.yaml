@@ -1,0 +1,169 @@
+kind: MLApp
+metadata:
+  name: gan-image-similarity
+spec:
+  package_manager: pip2
+  tasks:
+  - name: prepare-data
+    resources:
+    - name: upload
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 1
+      allowFail: true
+      images:
+        cpu: busybox
+      command: rm -rf ut-zap50k-images*;wget http://vision.cs.utexas.edu/projects/finegrained/utzap50k/ut-zap50k-images.zip; unzip ut-zap50k-images.zip;mv ut-zap50k-images/* ./;rm -rf ut-zap50k-images*
+      workdir: "$DATA_DIR"
+      volumes:
+      - name: data
+  - name: gan
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: tensorflow/tensorflow:latest-gpu
+        cpu: tensorflow/tensorflow:latest
+      command: python
+      args: main.py --gan --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=128 --file_pattern=$DATA_DIR/*/*/*/*.jpg
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 1
+          dedicated_gpu: true
+        requests:
+          cpu: 100m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 8Gi
+      volumes:
+      - name: lib
+      - name: training
+      - name: src
+      - name: data
+  - name: gan
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: tensorflow/tensorflow:latest-gpu
+        cpu: tensorflow/tensorflow:latest
+      command: python
+      args: main.py --gan --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=128 --file_pattern=$DATA_DIR/*/*/*/*.jpg
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 1
+          dedicated_gpu: true
+        requests:
+          cpu: 100m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 8Gi
+      volumes:
+      - name: lib
+      - name: training
+      - name: src
+      - name: data
+  - name: similarity
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: tensorflow/tensorflow:latest-gpu
+        cpu: tensorflow/tensorflow:latest
+      command: python
+      args: main.py --similarity --logdir=$TRAINING_DIR/2 --batch_size=128 --file_pattern=$DATA_DIR/*/*/*/*.jpg
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 1
+          dedicated_gpu: true
+        requests:
+          cpu: 100m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 8Gi
+      volumes:
+      - name: lib
+      - name: training
+      - name: src
+      - name: data
+  uix:
+  - name: jupyter
+    displayName: Jupyter
+    images:
+      gpu: "kuberlab/mlboard-jupyter-gpu:latest"
+      cpu: "kuberlab/mlboard-jupyter:latest"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 125Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    ports:
+    - port: 8888
+      targetPort: 8888
+      protocol: TCP
+      name: http
+    volumes:
+    - name: lib
+      mountPath: /notebooks/lib
+    - name: src
+      mountPath: /notebooks/src
+    - name: training
+      mountPath: /notebooks/training
+    - name: data
+      mountPath: /notebooks/data
+  - name: tensorboard
+    displayName: Tensorboard
+    command: "tensorboard"
+    args: "--logdir=$TRAINING_DIR"
+    images:
+      cpu: "lsheiba/tensorflow-ls-devel"
+    ports:
+    - port: 6006
+      targetPort: 6006
+      protocol: TCP
+      name: http
+    volumes:
+    - name: training
+  volumes:
+  - isLibDir: false
+    isTrainLogDir: true
+    mountPath: /training
+    name: training
+    clusterStorage: {{ .storage }}
+    subPath: training
+  - gitRepo:
+      repository: https://github.com/kuberlab/zappos
+    isLibDir: false
+    isTrainLogDir: false
+    mountPath: /src
+    name: src
+    subPath: "/zappos/src"
+  - isLibDir: true
+    isTrainLogDir: false
+    mountPath: /workspace/lib
+    name: lib
+    clusterStorage: {{ .storage }}
+    subPath: lib
+  - isLibDir: false
+    isTrainLogDir: false
+    mountPath: /data
+    name: lib
+    clusterStorage: {{ .storage }}
+    subPath: data
