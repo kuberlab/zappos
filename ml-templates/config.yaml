@@ -164,6 +164,6 @@ spec:
   - isLibDir: false
     isTrainLogDir: false
     mountPath: /data
-    name: lib
+    name: data
     clusterStorage: {{ .storage }}
     subPath: data
