@@ -155,7 +155,7 @@ def gan(dataset,cluster):
         worker_device = '/job:worker/task:%d/gpu:0' % (FLAGS.task)
     else:
         worker_device = '/job:worker/task:%d/cpu:0' % (FLAGS.task)
-    with tf.device('/cpu:0'):
+    with tf.device('/cpu:0'),tf.Session():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
     with tf.device(
