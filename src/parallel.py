@@ -154,92 +154,92 @@ def gan(cluster):
         worker_device = '/job:worker/task:%d/gpu:0' % (FLAGS.task)
     else:
         worker_device = '/job:worker/task:%d/cpu:0' % (FLAGS.task)
-    with tf.device('/cpu:0'), tf.Session() as cpu_sess:
+
+    with tf.device(
+        tf.train.replica_device_setter(
+            worker_device=worker_device,
+            ps_device='/job:ps/cpu:0',
+            cluster=cluster)),tf.Session():
+
         dataset = zap_data(FLAGS, True)
         coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
-        tf.train.start_queue_runners(sess=cpu_sess)
         num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
+        x = tf.placeholder(tf.float32, shape=[
+            None, IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3])
+        dropout = tf.placeholder(tf.float32)
+        d_model = discriminator(x, reuse=False, dropout=dropout)
 
-        with tf.device(
-            tf.train.replica_device_setter(
-                worker_device=worker_device,
-                ps_device='/job:ps/cpu:0',
-                cluster=cluster)),tf.Session():
-            x = tf.placeholder(tf.float32, shape=[
-                None, IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3])
-            dropout = tf.placeholder(tf.float32)
-            d_model = discriminator(x, reuse=False, dropout=dropout)
+        z = tf.placeholder(tf.float32, shape=[None, Z_DIM])
+        latent_c = tf.placeholder(shape=[None, C_DIM], dtype=tf.float32)
+        g_model = generator(z, latent_c)
+        dg_model, q_model = discriminator(
+            g_model, reuse=True, dropout=dropout, c_dim=C_DIM)
 
-            z = tf.placeholder(tf.float32, shape=[None, Z_DIM])
-            latent_c = tf.placeholder(shape=[None, C_DIM], dtype=tf.float32)
-            g_model = generator(z, latent_c)
-            dg_model, q_model = discriminator(
-                g_model, reuse=True, dropout=dropout, c_dim=C_DIM)
+        d_trainer, d_loss, g_trainer, g_loss, global_step = loss(
+            d_model, g_model, dg_model, q_model, latent_c)
 
-            d_trainer, d_loss, g_trainer, g_loss, global_step = loss(
-                d_model, g_model, dg_model, q_model, latent_c)
+        # Stats
+        t_vars = tf.trainable_variables()
+        count_params(t_vars, ['discr/', 'gen/', 'latent_c/'])
+        # for v in t_vars:
+        # tf.histogram_summary(v.name, v)
 
-            # Stats
-            t_vars = tf.trainable_variables()
-            count_params(t_vars, ['discr/', 'gen/', 'latent_c/'])
-            # for v in t_vars:
-            # tf.histogram_summary(v.name, v)
+        # Init
+        summary = tf.summary.merge_all()
 
-            # Init
-            summary = tf.summary.merge_all()
+        init_op = tf.global_variables_initializer()
 
-            init_op = tf.global_variables_initializer()
+        sv = tf.train.Supervisor(
+            is_chief=is_chief,
+            logdir=FLAGS.logdir,
+            init_op=init_op,
+            recovery_wait_secs=1,
+            summary_op=None,
+            global_step=global_step)
 
-            sv = tf.train.Supervisor(
-                is_chief=is_chief,
-                logdir=FLAGS.logdir,
-                init_op=init_op,
-                recovery_wait_secs=1,
-                summary_op=None,
-                global_step=global_step)
+        sess_config = tf.ConfigProto(
+            allow_soft_placement=True,
+            log_device_placement=False,
+            device_filters=['/job:ps', '/job:worker/task:%d' % FLAGS.task])
 
-            sess_config = tf.ConfigProto(
-                allow_soft_placement=True,
-                log_device_placement=False,
-                device_filters=['/job:ps', '/job:worker/task:%d' % FLAGS.task])
+        step = 0
+        with sv.managed_session(server.target, config=sess_config) as sess:
+            # Dataset queue
+            threads = tf.train.start_queue_runners(coord=coord)
+            tf.train.start_queue_runners(sess=sess)
+            while step < num_global and not sv.should_stop():
+                z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
+                c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
+                images, _ = sess.run(dataset['batch'])
+                feed_dict = {z: z_batch, latent_c: c_batch, x: images, dropout: .5, }
 
-            step = 0
-            with sv.managed_session(server.target, config=sess_config) as sess:
-                # Dataset queue
-                while step < num_global and not sv.should_stop():
-                    z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
-                    c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
-                    images, _ = cpu_sess.run(dataset['batch'])
-                    feed_dict = {z: z_batch, latent_c: c_batch, x: images, dropout: .5, }
+                # Update discriminator
+                start = time.time()
+                _, d_loss_val = sess.run([d_trainer, d_loss], feed_dict=feed_dict)
+                d_time = time.time() - start
 
-                    # Update discriminator
-                    start = time.time()
-                    _, d_loss_val = sess.run([d_trainer, d_loss], feed_dict=feed_dict)
-                    d_time = time.time() - start
+                # Update generator
+                start = time.time()
+                _, g_loss_val, summary_str, step = sess.run([g_trainer, g_loss, summary,global_step], feed_dict=feed_dict)
+                g_time = time.time() - start
 
-                    # Update generator
-                    start = time.time()
-                    _, g_loss_val, summary_str, step = sess.run([g_trainer, g_loss, summary,global_step], feed_dict=feed_dict)
-                    g_time = time.time() - start
+                # Log details
+                if local_step % 10 == 0:
+                    print("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
+                          (step, step * FLAGS.batch_size / dataset['size'], d_loss_val, d_time, g_loss_val, g_time, ))
+                    if is_chief:
+                        sv.summary_computed(sess,summary_str)
 
-                    # Log details
-                    if local_step % 10 == 0:
-                        print("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
-                              (step, step * FLAGS.batch_size / dataset['size'], d_loss_val, d_time, g_loss_val, g_time, ))
-                        if is_chief:
-                            sv.summary_computed(sess,summary_str)
+                local_step += 1
+                # Early stopping
+                if np.isnan(g_loss_val) or np.isnan(d_loss_val):
+                    print('Early stopping', g_loss_val, d_loss_val)
+                    break
 
-                    local_step += 1
-                    # Early stopping
-                    if np.isnan(g_loss_val) or np.isnan(d_loss_val):
-                        print('Early stopping', g_loss_val, d_loss_val)
-                        break
-
-                    # Finish off the filename queue coordinator.
-                coord.request_stop()
-                coord.join(threads)
-                return
+                # Finish off the filename queue coordinator.
+            coord.request_stop()
+            coord.join(threads)
+            return
 
 
 ########
