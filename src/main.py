@@ -23,8 +23,7 @@ TINY = 1e-8
 flags = tf.app.flags
 flags.DEFINE_string("file_pattern", "ut-zap50k-images/*/*/*/*.jpg", "Pattern to find zap50k images")
 flags.DEFINE_string("logdir", None, "Directory to save logs")
-flags.DEFINE_integer("limit", 1000000, "Number of iterations")
-flags.DEFINE_string("sampledir", None, "Directory to save samples")
+flags.DEFINE_integer("epochs", 1, "Number of epochs")
 flags.DEFINE_boolean("classifier", False, "Use the discriminator for classification")
 flags.DEFINE_boolean("kmeans", False, "Run kmeans of intermediate features")
 flags.DEFINE_boolean("similarity", False, "Find most similar shoe")
@@ -181,9 +180,9 @@ def gan(dataset, sess):
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(coord=coord)
     tf.train.start_queue_runners(sess=sess)
-
+    num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
     # Training loop
-    for step in range(global_step.eval(), 1 if FLAGS.debug else FLAGS.limit):
+    for step in range(global_step.eval(), num_global):
         z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
         c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
         images, _ = sess.run(dataset['batch'])
@@ -200,7 +199,7 @@ def gan(dataset, sess):
         g_time = time.time() - start
 
         # Log details
-        if step % 10 == 0 or FLAGS.debug:
+        if step % 10 == 0:
             print("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
                   (step, step * FLAGS.batch_size / dataset['size'], d_loss_val, d_time, g_loss_val, g_time, ))
             summary_writer.add_summary(summary_str, global_step.eval())
@@ -211,8 +210,8 @@ def gan(dataset, sess):
             break
 
         # save model
-        if step % 1000 == 0 and not FLAGS.debug:
-            print('Saving')
+        if step % 1000 == 0:
+            print('Checkpoint....')
             checkpoint_file = os.path.join(FLAGS.logdir, 'checkpoint')
             saver.save(sess, checkpoint_file, global_step=global_step)
 
@@ -220,45 +219,6 @@ def gan(dataset, sess):
     coord.request_stop()
     coord.join(threads)
     return
-
-
-##########
-# Sample #
-##########
-
-def sample(FLAGS, sess):
-    # Model
-    z = tf.placeholder(tf.float32, shape=[None, Z_DIM])
-    latent_c = tf.placeholder(shape=[None, C_DIM], dtype=tf.float32)
-    g_model = generator(z, latent_c)
-
-    # Restore
-    saver = tf.train.Saver()
-    checkpoints = [tf.train.latest_checkpoint(FLAGS.logdir)]
-    for checkpoint in checkpoints:
-        saver.restore(sess, checkpoint)
-
-        # Save samples
-        output = "samples/%s.png" % os.path.basename(checkpoint)
-        samples = 144
-        width = math.sqrt(samples)
-
-        # Input
-        z_batch = np.random.uniform(-1.0, 1.0, size=[samples, Z_DIM]).astype(np.float32)
-        c_batch = np.zeros((samples, C_DIM))
-        if 0:
-            for i in range(8):
-                c_batch[i * width:(i + 1) * width, i] = np.linspace(-1, 1, width)
-        else:
-            c_batch[:, 0] = np.tile(np.linspace(-1, 1, width), width)
-            c_batch[:, 1] = np.repeat(np.linspace(-1, 1, width), width)
-
-        # Run and save
-        images = sess.run(g_model, feed_dict={z: z_batch, latent_c: c_batch})
-        images = np.reshape(
-            images, [samples, IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3])
-        images = (images + 1.) / 2.
-        scipy.misc.imsave(output, merge(images, [int(width)] * 2))
 
 
 ##############
@@ -359,13 +319,8 @@ def similarity(FLAGS, sess, all_features, all_paths):
 def main(_):
     if not tf.gfile.Exists(FLAGS.logdir):
         tf.gfile.MakeDirs(FLAGS.logdir)
-    if FLAGS.sampledir and not tf.gfile.Exists(FLAGS.sampledir):
-        tf.gfile.MakeDirs(FLAGS.sampledir)
-
     with tf.Session() as sess:
-        if FLAGS.sampledir:
-            sample(FLAGS, sess)
-        elif FLAGS.similarity:
+        if FLAGS.similarity:
             dataset = zap_data(FLAGS, False)
             all_features, all_paths = export_intermediate(FLAGS, sess, dataset)
             similarity(FLAGS, sess, all_features, all_paths)
