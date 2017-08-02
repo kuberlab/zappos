@@ -8,11 +8,7 @@ import scipy.misc
 
 
 flags = tf.app.flags
-flags.DEFINE_string("file_pattern", "ut-zap50k-images/*/*/*/*.jpg", "Pattern to find zap50k images")
-flags.DEFINE_string("logdir", None, "Directory to save logs")
 flags.DEFINE_string("test_file", None, "File for test")
-flags.DEFINE_integer("batch_size", 32, "The size of batch images [32]")
-flags.DEFINE_boolean("debug", False, "True if debug mode")
 FLAGS = flags.FLAGS
 
 def serving(FLAGS, sess):
