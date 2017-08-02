@@ -49,6 +49,48 @@ spec:
       - name: training
       - name: src
       - name: data
+  - name: parallel
+    resources:
+    - name: worker
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      allowFail: true
+      images:
+        gpu: tensorflow/tensorflow:latest-gpu
+        cpu: tensorflow/tensorflow:latest
+      command: echo $TRAINING_DIR; echo $DATA_DIR; python
+      args: parallel.py --role=worker --num_gpus=$GPU_COUNT --task $REPLICA_INDEX --ps_hosts $PS_NODES --worker_hosts $WORKER_NODES --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=40 --file_pattern=$DATA_DIR/*/*/*/*.jpg --epochs=1
+      workdir: "$SRC_DIR"
+      resources:
+        accelerators:
+          gpu: 1
+          dedicated_gpu: true
+        requests:
+          cpu: 100m
+          memory: 1Gi
+        limits:
+          cpu: 1000m
+          memory: 4Gi
+      port: 2222
+      volumes:
+      - name: lib
+      - name: training
+      - name: src
+      - name: data
+    - name: ps
+      replicas: 1
+      restartPolicy: Never
+      maxRestartCount: 0
+      images:
+        gpu: tensorflow/tensorflow:latest-gpu
+        cpu: tensorflow/tensorflow:latest
+      command: echo $TRAINING_DIR; echo $DATA_DIR; python
+      args: parallel.py --role=ps --task $REPLICA_INDEX --ps_hosts $PS_NODES --worker_hosts $WORKER_NODES
+      workdir: "$SRC_DIR"
+      port: 2222
+      volumes:
+      - name: src
   - name: similarity
     resources:
     - name: worker
@@ -171,4 +213,4 @@ spec:
     mountPath: /data
     name: data
     clusterStorage: {{ .storage }}
-    subPath: data
+    subPath: /data/
