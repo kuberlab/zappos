@@ -221,10 +221,12 @@ def gan(dataset,cluster):
                 g_time = time.time() - start
 
                 # Log details
-                if is_chief and local_step % 10 == 0:
+                if local_step % 10 == 0:
                     print("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
                           (step, step * FLAGS.batch_size / dataset['size'], d_loss_val, d_time, g_loss_val, g_time, ))
-                    sv.summary_computed(sess,summary_str)
+                    if is_chief:
+                        sv.summary_computed(sess,summary_str)
+
                 local_step += 1
                 # Early stopping
                 if np.isnan(g_loss_val) or np.isnan(d_loss_val):
