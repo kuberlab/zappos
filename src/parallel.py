@@ -150,15 +150,11 @@ def gan(cluster):
     local_step = 0
     server = tf.train.Server(
         cluster, job_name='worker', task_index=FLAGS.task)
-    if FLAGS.num_gpus>0:
-        worker_device = '/job:worker/task:%d/gpu:0' % (FLAGS.task)
-    else:
-        worker_device = '/job:worker/task:%d/cpu:0' % (FLAGS.task)
-
+    worker_device = '/job:worker/task:%d' % (FLAGS.task)
     with tf.device(
         tf.train.replica_device_setter(
             worker_device=worker_device,
-            ps_device='/job:ps/cpu:0',
+            ps_device='/job:ps',
             cluster=cluster)),tf.Session():
 
         dataset = zap_data(FLAGS, True)
