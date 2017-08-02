@@ -163,7 +163,7 @@ def gan(dataset,cluster):
             tf.train.replica_device_setter(
                 worker_device=worker_device,
                 ps_device='/job:ps/cpu:0',
-                cluster=cluster)):
+                cluster=cluster)),tf.Session():
             x = tf.placeholder(tf.float32, shape=[
                 None, IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3])
             dropout = tf.placeholder(tf.float32)
