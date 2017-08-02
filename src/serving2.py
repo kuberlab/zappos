@@ -84,6 +84,7 @@ def upload_file():
         img = scipy.misc.imresize(img, IMAGE_SIZE['resized'])
         img = img * (1. / 255) - 0.5
         res = similarity(img,10)
+        print(res)
         return flask.render_template('body.html',features=res)
     return '''
     <!doctype html>
