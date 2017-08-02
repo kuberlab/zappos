@@ -162,7 +162,6 @@ def gan(cluster):
             cluster=cluster)),tf.Session():
 
         dataset = zap_data(FLAGS, True)
-        coord = tf.train.Coordinator()
         num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
         x = tf.placeholder(tf.float32, shape=[
             None, IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3])
@@ -205,6 +204,7 @@ def gan(cluster):
         step = 0
         with sv.managed_session(server.target, config=sess_config) as sess:
             # Dataset queue
+            coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(coord=coord)
             tf.train.start_queue_runners(sess=sess)
             while step < num_global and not sv.should_stop():
