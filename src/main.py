@@ -23,6 +23,7 @@ TINY = 1e-8
 flags = tf.app.flags
 flags.DEFINE_string("file_pattern", "ut-zap50k-images/*/*/*/*.jpg", "Pattern to find zap50k images")
 flags.DEFINE_string("logdir", None, "Directory to save logs")
+flags.DEFINE_integer("limit", 1000000, "Number of iterations")
 flags.DEFINE_string("sampledir", None, "Directory to save samples")
 flags.DEFINE_boolean("classifier", False, "Use the discriminator for classification")
 flags.DEFINE_boolean("kmeans", False, "Run kmeans of intermediate features")
@@ -182,7 +183,7 @@ def gan(dataset, sess):
     tf.train.start_queue_runners(sess=sess)
 
     # Training loop
-    for step in range(global_step.eval(), 1 if FLAGS.debug else int(1e6)):
+    for step in range(global_step.eval(), 1 if FLAGS.debug else FLAGS.limit):
         z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
         c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
         images, _ = sess.run(dataset['batch'])

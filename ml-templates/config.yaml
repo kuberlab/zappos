@@ -32,7 +32,7 @@ spec:
         gpu: tensorflow/tensorflow:latest-gpu
         cpu: tensorflow/tensorflow:latest
       command: python
-      args: main.py --gan --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=128 --file_pattern=$DATA_DIR/*/*/*/*.jpg
+      args: main.py --gan --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=128 --file_pattern=$DATA_DIR/*/*/*/*.jpg --limit=1000
       workdir: "$SRC_DIR"
       resources:
         accelerators:
@@ -119,7 +119,7 @@ spec:
     - name: training
   serving:
   - name: serving
-    displayName: TF Serving
+    displayName: Serving
     images:
         gpu: tensorflow/tensorflow:latest-gpu
         cpu: tensorflow/tensorflow:latest
