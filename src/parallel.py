@@ -155,9 +155,8 @@ def gan(dataset,cluster):
         worker_device = '/job:worker/task:%d/gpu:0' % (FLAGS.task)
     else:
         worker_device = '/job:worker/task:%d/cpu:0' % (FLAGS.task)
-    with tf.device('/cpu:0'),tf.Session():
+    with tf.device('/cpu:0'):
         coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(coord=coord)
     with tf.device(
         tf.train.replica_device_setter(
             worker_device=worker_device,
@@ -204,6 +203,7 @@ def gan(dataset,cluster):
         step = 0
         with sv.managed_session(server.target, config=sess_config) as sess:
             # Dataset queue
+            threads = tf.train.start_queue_runners(coord=coord)
             tf.train.start_queue_runners(sess=sess)
             while step < num_global and not sv.should_stop():
                 z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
