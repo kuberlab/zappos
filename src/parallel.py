@@ -144,9 +144,8 @@ def loss(d_model, g_model, dg_model, q_model, latent_c):
 #######
 
 
-def gan(dataset,cluster):
+def gan(cluster):
     # Model
-    num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
     is_chief = (FLAGS.task == 0)
     local_step = 0
     server = tf.train.Server(
@@ -155,6 +154,13 @@ def gan(dataset,cluster):
         worker_device = '/job:worker/task:%d/gpu:0' % (FLAGS.task)
     else:
         worker_device = '/job:worker/task:%d/cpu:0' % (FLAGS.task)
+    with tf.device('/cpu:0'), tf.Session() as cpu_sess:
+        dataset = zap_data(FLAGS, True)
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
+        tf.train.start_queue_runners(sess=cpu_sess)
+        num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
+
     with tf.device(
         tf.train.replica_device_setter(
             worker_device=worker_device,
@@ -201,10 +207,6 @@ def gan(dataset,cluster):
         step = 0
         with sv.managed_session(server.target, config=sess_config) as sess:
             # Dataset queue
-            with tf.device('/cpu:0'), tf.Session() as cpu_sess:
-                coord = tf.train.Coordinator()
-                threads = tf.train.start_queue_runners(coord=coord)
-                tf.train.start_queue_runners(sess=cpu_sess)
             while step < num_global and not sv.should_stop():
                 z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
                 c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
@@ -258,8 +260,7 @@ def main(_):
         return
     if not tf.gfile.Exists(FLAGS.logdir):
         tf.gfile.MakeDirs(FLAGS.logdir)
-    dataset = zap_data(FLAGS, True)
-    gan(dataset, cluster)
+    gan(cluster)
 
 
 if __name__ == '__main__':
