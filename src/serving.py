@@ -6,10 +6,14 @@ from zap50k import zap_data, IMAGE_SIZE
 import itertools
 import scipy.misc
 
+from flask import Flask
 
 flags = tf.app.flags
-flags.DEFINE_string("test_file", None, "File for test")
 FLAGS = flags.FLAGS
+
+app = Flask(__name__)
+
+similarity = None
 
 def serving(FLAGS, sess):
     with sess.as_default():
@@ -75,14 +79,38 @@ def serving(FLAGS, sess):
         return select_images(distances)
     return similarity
 
-def main(_):
-    img = scipy.misc.imread(FLAGS.test_file, mode='RGB')
-    img = scipy.misc.imresize(img, IMAGE_SIZE['resized'])
-    img = img * (1. / 255) - 0.5
-    with tf.Session() as sess:
-        similarity = serving(FLAGS,sess)
+
+@app.route('/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        imagefile = flask.request.files['file']
+        img = scipy.misc.imread(imagefile, mode='RGB')
+        img = scipy.misc.imresize(img, IMAGE_SIZE['resized'])
+        img = img * (1. / 255) - 0.5
         res = similarity(img,10)
-        print(res)
+        return flask.render_template('body.html',features=res)
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <p><input type=file name=file>
+         <input type=submit value=Upload>
+    </form>
+    '''
+@app.route('/data/<path:path>')
+def send_img(path):
+    return flask.send_from_directory('/data', path)
+
+def main(_):
+    #img = scipy.misc.imread(FLAGS.test_file, mode='RGB')
+    #img = scipy.misc.imresize(img, IMAGE_SIZE['resized'])
+    #img = img * (1. / 255) - 0.5
+    with tf.Session() as sess:
+        global similarity
+        similarity = serving(FLAGS,sess)
+        print("Start serving")
+        app.run()
 
 
 if __name__ == '__main__':
