@@ -6,12 +6,12 @@ from zap50k import zap_data, IMAGE_SIZE
 import itertools
 import scipy.misc
 
-from flask import Flask
+import flask
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
 sess = tf.Session()
 with sess.as_default():
