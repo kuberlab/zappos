@@ -57,8 +57,8 @@ spec:
       maxRestartCount: 0
       allowFail: true
       images:
-        gpu: tensorflow/tensorflow:latest-gpu
-        cpu: tensorflow/tensorflow:latest
+        gpu: tensorflow/tensorflow:1.2.0-gpu
+        cpu: tensorflow/tensorflow:1.2.0
       command: echo $TRAINING_DIR; echo $DATA_DIR; python
       args: parallel.py --role=worker --num_gpus=$GPU_COUNT --task $REPLICA_INDEX --ps_hosts $PS_NODES --worker_hosts $WORKER_NODES --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=40 --file_pattern=$DATA_DIR/*/*/*/*.jpg --epochs=1
       workdir: "$SRC_DIR"
@@ -83,8 +83,8 @@ spec:
       restartPolicy: Never
       maxRestartCount: 0
       images:
-        gpu: tensorflow/tensorflow:latest-gpu
-        cpu: tensorflow/tensorflow:latest
+        gpu: tensorflow/tensorflow:1.2.0-gpu
+        cpu: tensorflow/tensorflow:1.2.0
       command: echo $TRAINING_DIR; echo $DATA_DIR; python
       args: parallel.py --role=ps --task $REPLICA_INDEX --ps_hosts $PS_NODES --worker_hosts $WORKER_NODES
       workdir: "$SRC_DIR"
