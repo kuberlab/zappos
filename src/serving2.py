@@ -78,7 +78,7 @@ def similarity(img,size):
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
-    if request.method == 'POST':
+    if flask.request.method == 'POST':
         imagefile = flask.request.files['file']
         img = scipy.misc.imread(imagefile, mode='RGB')
         img = scipy.misc.imresize(img, IMAGE_SIZE['resized'])
@@ -100,6 +100,7 @@ def send_img(path):
     return flask.send_from_directory('/data', path)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    print('Starting flask on 5000')
+    app.run(debug=False, port=5000)
 
 
