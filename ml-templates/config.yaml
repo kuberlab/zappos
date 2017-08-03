@@ -167,7 +167,7 @@ spec:
         cpu: tensorflow/tensorflow:1.2.0
     workdir: "$SRC_DIR"
     command: python
-    args: "serving.py --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=40 --file_pattern=$DATA_DIR/*/*/*/*.jpg"
+    args: "serving2.py --logdir=$TRAINING_DIR/$BUILD_ID --batch_size=40 --file_pattern=$DATA_DIR/*/*/*/*.jpg"
     resources:
       accelerators:
         gpu: 1
