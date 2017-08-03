@@ -10,6 +10,7 @@ import os
 import scipy.misc
 import tensorflow as tf
 import time
+import pickle
 
 slim = tf.contrib.slim
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -306,7 +307,8 @@ def similarity(FLAGS, sess, all_features, all_paths):
 
         # Pick best matches
         result += [select_images(distances)]
-
+    with open(FLAGS.logdir+'features.pkl', 'wb') as output:
+        pickle.dump(all_features, output, pickle.HIGHEST_PROTOCOL)
     with open(FLAGS.logdir+'/data.json', 'w') as f:
         json.dump(dict(data=result), f)
     return
