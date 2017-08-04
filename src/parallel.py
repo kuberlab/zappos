@@ -235,6 +235,7 @@ def gan(cluster):
                 # Finish off the filename queue coordinator.
             #coord.request_stop()
             #coord.join(threads)
+            sv.request_stop()
             return
 
 
