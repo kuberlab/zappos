@@ -213,4 +213,4 @@ spec:
     mountPath: /data
     name: data
     clusterStorage: {{ .storage }}
-    subPath: /data/ut-zap50k-images
+    subPath: /shared/data/ut-zap50k-images
