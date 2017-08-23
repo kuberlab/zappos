@@ -5,7 +5,7 @@ from main import discriminator
 from zap50k import zap_data, IMAGE_SIZE
 import itertools
 import scipy.misc
-
+import pickle
 import flask
 
 flags = tf.app.flags
@@ -37,23 +37,9 @@ with sess.as_default():
     checkpoint = tf.train.latest_checkpoint(FLAGS.logdir)
     saver.restore(sess, checkpoint)
 
-    all_paths = []
-    for i in itertools.count():
-        try:
-            images, paths = sess.run(dataset['batch'])
-        except tf.errors.OutOfRangeError:
-            break
-        if i % 10 == 0:
-            print(i * FLAGS.batch_size, dataset['size'])
-        im_features = sess.run(feat_model, feed_dict={x: images, dropout: 1, })
-        all_features[FLAGS.batch_size * i:FLAGS.batch_size * i + im_features.shape[0]] = im_features
-        all_paths += list(paths)
-
-    # Finish off the filename queue coordinator.
-    coord.request_stop()
-    coord.join(threads)
-    clip = 1e-3
-    np.clip(all_features, -clip, clip, all_features)
+    with open(FLAGS.logdir+'/features.pkl', 'rb') as input:
+        all_features = pickle.load(input)
+        all_paths = pickle.load(input)
 
 def similarity(img,size):
     X = np.zeros([1,IMAGE_SIZE['resized'][0], IMAGE_SIZE['resized'][1], 3], dtype=np.float32)
