@@ -1,4 +1,4 @@
-Description: Gan Image Similarity
+Description: Gan Image Similarity(Zappos)
 Engine: gotpl
 Home: http://kuberlab.com
 Icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwmSxoPPuSYBFO9snorqVWFehr9Pkf4tSOhdLM6FXT2aqxcLp60A
@@ -11,6 +11,6 @@ Keywords:
 Maintainers:
 - Email: agunin@kuberlab.com
   Name: Gunin Alexander
-Name: gan-image-similarity
+Name: zappos
 Version: 1.0.0
 Type: mlapp-v2
