@@ -30,7 +30,7 @@ def zap_data(FLAGS, shuffle):
 
     # Mini batch
     num_preprocess_threads = 1 if FLAGS.debug else 4
-    min_queue_examples = 100 if FLAGS.debug else 10000
+    min_queue_examples = 10
     if shuffle:
         images = tf.train.shuffle_batch(
             image,
