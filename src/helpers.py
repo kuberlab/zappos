@@ -4,6 +4,7 @@ from hashlib import md5
 from glob import glob
 import pickle
 import tensorflow as tf
+from functools import reduce
 
 CACHE_PATH = '/tmp/tf-cache'
 
