@@ -62,6 +62,7 @@ def generator(z, latent_c):
     sizes = zip(
         np.linspace(4, IMAGE_SIZE['resized'][0], len(depths)).astype(np.int),
         np.linspace(6, IMAGE_SIZE['resized'][1], len(depths)).astype(np.int))
+    sizes = list(sizes)
     with slim.arg_scope([slim.conv2d_transpose],
                         normalizer_fn=slim.batch_norm,
                         kernel_size=3):
