@@ -185,7 +185,7 @@ def gan(dataset, sess):
     tf.train.start_queue_runners(sess=sess)
     num_global = (dataset['size'] / FLAGS.batch_size) * FLAGS.epochs
     # Training loop
-    for step in range(global_step.eval(), num_global):
+    for step in range(global_step.eval(), int(num_global)):
         z_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, Z_DIM]).astype(np.float32)
         c_batch = np.random.uniform(-1, 1, [FLAGS.batch_size, C_DIM])
         images, _ = sess.run(dataset['batch'])
