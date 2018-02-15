@@ -11,6 +11,7 @@ import scipy.misc
 import tensorflow as tf
 import time
 import pickle
+import logging
 
 slim = tf.contrib.slim
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -201,7 +202,7 @@ def gan(dataset, sess):
 
         # Log details
         if step % 10 == 0:
-            print("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
+            logging.info("[%s, %s] Disc loss: %.3f (%.2fs), Gen Loss: %.3f (%.2fs)" %
                   (step, step * FLAGS.batch_size / dataset['size'], d_loss_val, d_time, g_loss_val, g_time, ))
             summary_writer.add_summary(summary_str, global_step.eval())
 
@@ -322,6 +323,7 @@ def similarity(FLAGS, sess, all_features, all_paths):
 def main(_):
     if not tf.gfile.Exists(FLAGS.logdir):
         tf.gfile.MakeDirs(FLAGS.logdir)
+    tf.logging.set_verbosity(tf.logging.INFO)
     with tf.Session() as sess:
         if FLAGS.similarity:
             dataset = zap_data(FLAGS, False)
