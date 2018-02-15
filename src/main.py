@@ -69,7 +69,7 @@ def generator(z, latent_c):
         with tf.variable_scope("gen"):
             size = sizes.pop(0)
             net = tf.concat(axis=1, values=[z, latent_c])
-            net = slim.fully_connected(net, depths[0] * size[0] * size[1])
+            net = slim.fully_connected(net, np.asscalar(depths[0] * size[0] * size[1]))
             net = tf.reshape(net, [-1, size[0], size[1], depths[0]])
             for depth in depths[1:-1] + [None]:
                 net = tf.image.resize_images(
