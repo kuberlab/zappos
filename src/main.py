@@ -11,7 +11,7 @@ import scipy.misc
 import tensorflow as tf
 import time
 import pickle
-import logging
+from tensorflow import logging
 
 slim = tf.contrib.slim
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -323,7 +323,7 @@ def similarity(FLAGS, sess, all_features, all_paths):
 def main(_):
     if not tf.gfile.Exists(FLAGS.logdir):
         tf.gfile.MakeDirs(FLAGS.logdir)
-    tf.logging.set_verbosity(tf.logging.INFO)
+    logging.set_verbosity(logging.INFO)
     with tf.Session() as sess:
         if FLAGS.similarity:
             dataset = zap_data(FLAGS, False)
